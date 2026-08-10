@@ -14,11 +14,13 @@ import {
   collection,
   getDocs,
   addDoc,
+  updateDoc,
   deleteDoc,
   doc,
   query,
-  where
+  orderBy
 } from "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js";
+
 
 // ==========================================
 // GLOBAL DATA
@@ -30,16 +32,20 @@ let leaves = [];
 
 let currentUser = null;
 
+
 // ==========================================
 // PAGE INITIALIZATION
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
+
   console.log("HR System Started");
 
   setupNavigation();
   setupLogin();
+
 });
+
 
 // ==========================================
 // FIREBASE AUTH STATE
@@ -66,9 +72,11 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = null;
 
     showLogin();
+
   }
 
 });
+
 
 // ==========================================
 // LOGIN
@@ -76,145 +84,99 @@ onAuthStateChanged(auth, async (user) => {
 
 function setupLogin() {
 
-  const loginForm = document.getElementById("login-form");
+  const loginForm =
+    document.getElementById("login-form");
 
-  if (!loginForm) {
-    console.log("Login form not found.");
-    return;
-  }
+  if (!loginForm) return;
 
-  loginForm.addEventListener("submit", async (e) => {
 
-    e.preventDefault();
+  loginForm.addEventListener(
+    "submit",
+    async (e) => {
 
-    const loginInput =
-      document.getElementById("login-email");
+      e.preventDefault();
 
-    const passwordInput =
-      document.getElementById("login-password");
 
-    const errorBox =
-      document.getElementById("login-error");
+      const email =
+        document
+          .getElementById("login-email")
+          .value
+          .trim();
 
-    const button =
-      document.getElementById("login-button");
 
-    if (!loginInput || !passwordInput) {
-      return;
-    }
+      const password =
+        document
+          .getElementById("login-password")
+          .value;
 
-    const loginValue =
-      loginInput.value.trim();
 
-    const password =
-      passwordInput.value;
+      const errorBox =
+        document.getElementById("login-error");
 
-    try {
 
-      if (button) {
+      const button =
+        document.getElementById("login-button");
+
+
+      try {
+
         button.disabled = true;
+
         button.innerText = "Signing in...";
-      }
 
-      if (errorBox) {
-        errorBox.innerText = "";
-      }
 
-      let email = loginValue;
+        if (errorBox) {
 
-      // ------------------------------------------
-      // If user enters Employee ID instead of email
-      // ------------------------------------------
+          errorBox.innerText = "";
 
-      if (!loginValue.includes("@")) {
+        }
 
-        const employeeQuery = query(
-          collection(db, "Employees"),
-          where("employeeId", "==", loginValue)
+
+        await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
         );
 
-        const snapshot =
-          await getDocs(employeeQuery);
 
-        if (snapshot.empty) {
+      } catch (error) {
 
-          throw new Error(
-            "Employee ID not found."
-          );
+        console.error(error);
+
+
+        if (errorBox) {
+
+          if (
+            error.code ===
+            "auth/invalid-credential"
+          ) {
+
+            errorBox.innerText =
+              "Invalid email or password.";
+
+          } else {
+
+            errorBox.innerText =
+              error.message;
+
+          }
+
         }
 
-        const employeeData =
-          snapshot.docs[0].data();
 
-        if (!employeeData.email) {
-
-          throw new Error(
-            "This employee does not have an email."
-          );
-        }
-
-        email = employeeData.email;
-      }
-
-      // ------------------------------------------
-      // Firebase Login
-      // ------------------------------------------
-
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      console.log(
-        "Login successful:",
-        email
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Login Error:",
-        error
-      );
-
-      if (errorBox) {
-
-        if (
-          error.code === "auth/invalid-credential"
-        ) {
-
-          errorBox.innerText =
-            "Invalid email/Employee ID or password.";
-
-        } else if (
-          error.message ===
-          "Employee ID not found."
-        ) {
-
-          errorBox.innerText =
-            "Employee ID not found.";
-
-        } else {
-
-          errorBox.innerText =
-            error.message;
-        }
-      }
-
-    } finally {
-
-      if (button) {
+      } finally {
 
         button.disabled = false;
-        button.innerText = "লগইন করুন";
+
+        button.innerText = "Login";
 
       }
-    }
 
-  });
+    }
+  );
 
 }
+
 
 // ==========================================
 // LOGOUT
@@ -226,8 +188,6 @@ window.logout = async function () {
 
     await signOut(auth);
 
-    console.log("Logged out successfully.");
-
   } catch (error) {
 
     console.error(
@@ -238,6 +198,7 @@ window.logout = async function () {
   }
 
 };
+
 
 // ==========================================
 // SHOW LOGIN
@@ -251,15 +212,22 @@ function showLogin() {
   const appPage =
     document.getElementById("app-page");
 
+
   if (loginPage) {
+
     loginPage.classList.remove("hidden");
+
   }
 
+
   if (appPage) {
+
     appPage.classList.add("hidden");
+
   }
 
 }
+
 
 // ==========================================
 // SHOW DASHBOARD
@@ -273,23 +241,32 @@ function showDashboard() {
   const appPage =
     document.getElementById("app-page");
 
+
   if (loginPage) {
+
     loginPage.classList.add("hidden");
+
   }
 
+
   if (appPage) {
+
     appPage.classList.remove("hidden");
+
   }
+
 
   const userName =
     document.getElementById(
       "user-display-name"
     );
 
+
   const userRole =
     document.getElementById(
       "user-display-role"
     );
+
 
   if (userName) {
 
@@ -297,6 +274,7 @@ function showDashboard() {
       currentUser?.email || "User";
 
   }
+
 
   if (userRole) {
 
@@ -306,6 +284,7 @@ function showDashboard() {
   }
 
 }
+
 
 // ==========================================
 // NAVIGATION
@@ -331,6 +310,7 @@ function setupNavigation() {
 
             });
 
+
           item.classList.add("active");
 
         }
@@ -339,6 +319,7 @@ function setupNavigation() {
     });
 
 }
+
 
 // ==========================================
 // SWITCH TAB
@@ -354,10 +335,12 @@ window.switchTab = function(tabName) {
 
     });
 
+
   const selectedView =
     document.getElementById(
       `view-${tabName}`
     );
+
 
   if (selectedView) {
 
@@ -367,44 +350,51 @@ window.switchTab = function(tabName) {
 
   }
 
+
   document
     .querySelectorAll(".nav-item")
     .forEach(item => {
 
-      item.classList.remove(
-        "active"
-      );
+      item.classList.remove("active");
 
     });
 
+
   const clicked =
     document.querySelector(
-      `[onclick="switchTab('${tabName}')"]`
+      `[onclick*="switchTab('${tabName}')"]`
     );
+
 
   if (clicked) {
 
-    clicked.classList.add(
-      "active"
-    );
+    clicked.classList.add("active");
 
   }
+
 
   const titles = {
 
     dashboard: "Dashboard",
+
     employees: "Employees",
+
     attendance: "Attendance",
+
     leave: "Leave Management",
+
     payroll: "Payroll",
+
     increments: "Increment Due"
 
   };
+
 
   const title =
     document.getElementById(
       "page-title"
     );
+
 
   if (title) {
 
@@ -414,25 +404,36 @@ window.switchTab = function(tabName) {
 
   }
 
-  // Load specific views
 
   if (tabName === "employees") {
+
     renderEmployees();
+
   }
+
 
   if (tabName === "attendance") {
+
     renderAttendance();
+
   }
+
 
   if (tabName === "leave") {
+
     renderLeaves();
+
   }
 
+
   if (tabName === "increments") {
+
     renderIncrementDue();
+
   }
 
 };
+
 
 // ==========================================
 // LOAD EMPLOYEES
@@ -450,27 +451,30 @@ async function loadEmployees() {
         )
       );
 
+
     employees = [];
 
+
     snapshot.forEach(
-      documentSnapshot => {
+      document => {
 
         employees.push({
 
-          id:
-            documentSnapshot.id,
+          id: document.id,
 
-          ...documentSnapshot.data()
+          ...document.data()
 
         });
 
       }
     );
 
+
     console.log(
       "Employees loaded:",
       employees
     );
+
 
     renderEmployees();
 
@@ -484,6 +488,7 @@ async function loadEmployees() {
   }
 
 }
+
 
 // ==========================================
 // LOAD ATTENDANCE
@@ -501,27 +506,24 @@ async function loadAttendance() {
         )
       );
 
+
     attendance = [];
 
+
     snapshot.forEach(
-      documentSnapshot => {
+      document => {
 
         attendance.push({
 
-          id:
-            documentSnapshot.id,
+          id: document.id,
 
-          ...documentSnapshot.data()
+          ...document.data()
 
         });
 
       }
     );
 
-    console.log(
-      "Attendance loaded:",
-      attendance
-    );
 
   } catch (error) {
 
@@ -533,6 +535,7 @@ async function loadAttendance() {
   }
 
 }
+
 
 // ==========================================
 // LOAD LEAVES
@@ -550,27 +553,24 @@ async function loadLeaves() {
         )
       );
 
+
     leaves = [];
 
+
     snapshot.forEach(
-      documentSnapshot => {
+      document => {
 
         leaves.push({
 
-          id:
-            documentSnapshot.id,
+          id: document.id,
 
-          ...documentSnapshot.data()
+          ...document.data()
 
         });
 
       }
     );
 
-    console.log(
-      "Leaves loaded:",
-      leaves
-    );
 
   } catch (error) {
 
@@ -583,6 +583,7 @@ async function loadLeaves() {
 
 }
 
+
 // ==========================================
 // UPDATE DASHBOARD
 // ==========================================
@@ -594,22 +595,24 @@ function updateDashboard() {
       "stat-total-emp"
     );
 
+
   const present =
     document.getElementById(
       "stat-present"
     );
+
 
   const leave =
     document.getElementById(
       "stat-leave"
     );
 
+
   const increment =
     document.getElementById(
       "stat-increment-due"
     );
 
-  // Total employees
 
   if (total) {
 
@@ -618,27 +621,24 @@ function updateDashboard() {
 
   }
 
-  // Today's date
 
   const today =
     new Date()
       .toISOString()
       .split("T")[0];
 
-  // Present today
 
   const presentToday =
-    attendance.filter(item => {
+    attendance.filter(item =>
 
-      return (
-        item.date === today &&
-        (
-          item.status === "Present" ||
-          item.status === "present"
-        )
-      );
+      item.date === today &&
+      (
+        item.status === "Present" ||
+        item.status === "present"
+      )
 
-    }).length;
+    ).length;
+
 
   if (present) {
 
@@ -647,20 +647,18 @@ function updateDashboard() {
 
   }
 
-  // Leave today
 
   const leaveToday =
-    leaves.filter(item => {
+    leaves.filter(item =>
 
-      return (
-        item.date === today &&
-        (
-          item.status === "Approved" ||
-          item.status === "approved"
-        )
-      );
+      item.date === today &&
+      (
+        item.status === "Approved" ||
+        item.status === "approved"
+      )
 
-    }).length;
+    ).length;
+
 
   if (leave) {
 
@@ -669,26 +667,31 @@ function updateDashboard() {
 
   }
 
-  // Increment due
 
   const due =
     employees.filter(employee => {
 
       if (!employee.lastIncrement) {
+
         return false;
+
       }
+
 
       const last =
         new Date(
           employee.lastIncrement
         );
 
+
       const now =
         new Date();
+
 
       const difference =
         now.getTime() -
         last.getTime();
+
 
       const oneYear =
         365 *
@@ -697,11 +700,11 @@ function updateDashboard() {
         60 *
         1000;
 
-      return (
-        difference >= oneYear
-      );
+
+      return difference >= oneYear;
 
     }).length;
+
 
   if (increment) {
 
@@ -711,6 +714,7 @@ function updateDashboard() {
   }
 
 }
+
 
 // ==========================================
 // RENDER EMPLOYEES
@@ -723,11 +727,12 @@ function renderEmployees() {
       "employee-table-body"
     );
 
-  if (!tbody) {
-    return;
-  }
+
+  if (!tbody) return;
+
 
   tbody.innerHTML = "";
+
 
   if (employees.length === 0) {
 
@@ -737,7 +742,8 @@ function renderEmployees() {
 
         <td
           colspan="6"
-          class="p-6 text-center text-gray-400">
+          class="p-6 text-center text-gray-400"
+        >
 
           No employees found.
 
@@ -748,15 +754,19 @@ function renderEmployees() {
     `;
 
     return;
+
   }
+
 
   employees.forEach(employee => {
 
     const row =
       document.createElement("tr");
 
+
     row.className =
       "border-b hover:bg-gray-50";
+
 
     row.innerHTML = `
 
@@ -783,8 +793,7 @@ function renderEmployees() {
       <td class="p-3">
 
         <span class="
-          px-2
-          py-1
+          px-2 py-1
           rounded-full
           text-xs
           bg-emerald-100
@@ -799,11 +808,13 @@ function renderEmployees() {
 
     `;
 
+
     tbody.appendChild(row);
 
   });
 
 }
+
 
 // ==========================================
 // RENDER ATTENDANCE
@@ -816,11 +827,12 @@ function renderAttendance() {
       "attendance-table-body"
     );
 
-  if (!tbody) {
-    return;
-  }
+
+  if (!tbody) return;
+
 
   tbody.innerHTML = "";
+
 
   if (attendance.length === 0) {
 
@@ -830,7 +842,8 @@ function renderAttendance() {
 
         <td
           colspan="6"
-          class="p-6 text-center text-gray-400">
+          class="p-6 text-center text-gray-400"
+        >
 
           No attendance records found.
 
@@ -841,15 +854,19 @@ function renderAttendance() {
     `;
 
     return;
+
   }
+
 
   attendance.forEach(item => {
 
     const row =
       document.createElement("tr");
 
+
     row.className =
       "border-b";
+
 
     row.innerHTML = `
 
@@ -879,11 +896,13 @@ function renderAttendance() {
 
     `;
 
+
     tbody.appendChild(row);
 
   });
 
 }
+
 
 // ==========================================
 // RENDER LEAVES
@@ -896,11 +915,12 @@ function renderLeaves() {
       "leave-table-body"
     );
 
-  if (!tbody) {
-    return;
-  }
+
+  if (!tbody) return;
+
 
   tbody.innerHTML = "";
+
 
   if (leaves.length === 0) {
 
@@ -910,7 +930,8 @@ function renderLeaves() {
 
         <td
           colspan="5"
-          class="p-6 text-center text-gray-400">
+          class="p-6 text-center text-gray-400"
+        >
 
           No leave records found.
 
@@ -921,15 +942,19 @@ function renderLeaves() {
     `;
 
     return;
+
   }
+
 
   leaves.forEach(item => {
 
     const row =
       document.createElement("tr");
 
+
     row.className =
       "border-b";
+
 
     row.innerHTML = `
 
@@ -955,11 +980,13 @@ function renderLeaves() {
 
     `;
 
+
     tbody.appendChild(row);
 
   });
 
 }
+
 
 // ==========================================
 // RENDER INCREMENT DUE
@@ -972,40 +999,49 @@ function renderIncrementDue() {
       "increment-table-body"
     );
 
-  if (!tbody) {
-    return;
-  }
+
+  if (!tbody) return;
+
 
   tbody.innerHTML = "";
+
 
   const now =
     new Date();
 
-  const oneYear =
-    365 *
-    24 *
-    60 *
-    60 *
-    1000;
 
   const dueEmployees =
     employees.filter(employee => {
 
       if (!employee.lastIncrement) {
+
         return false;
+
       }
+
 
       const last =
         new Date(
           employee.lastIncrement
         );
 
-      return (
+
+      const difference =
         now.getTime() -
-        last.getTime()
-      ) >= oneYear;
+        last.getTime();
+
+
+      return (
+        difference >=
+        365 *
+        24 *
+        60 *
+        60 *
+        1000
+      );
 
     });
+
 
   if (dueEmployees.length === 0) {
 
@@ -1015,7 +1051,8 @@ function renderIncrementDue() {
 
         <td
           colspan="5"
-          class="p-6 text-center text-gray-400">
+          class="p-6 text-center text-gray-400"
+        >
 
           No increment due.
 
@@ -1026,15 +1063,19 @@ function renderIncrementDue() {
     `;
 
     return;
+
   }
+
 
   dueEmployees.forEach(employee => {
 
     const row =
       document.createElement("tr");
 
+
     row.className =
       "border-b";
+
 
     row.innerHTML = `
 
@@ -1056,15 +1097,16 @@ function renderIncrementDue() {
 
       <td class="p-3">
 
-        <span class="
-          px-2
-          py-1
-          rounded-full
-          bg-red-100
-          text-red-700
-          text-xs
-          font-semibold
-        ">
+        <span
+          class="
+            px-2 py-1
+            rounded-full
+            bg-red-100
+            text-red-700
+            text-xs
+            font-semibold
+          "
+        >
 
           Increment Due
 
@@ -1074,17 +1116,20 @@ function renderIncrementDue() {
 
     `;
 
+
     tbody.appendChild(row);
 
   });
 
 }
 
+
 // ==========================================
 // ADD EMPLOYEE
 // ==========================================
 
-window.addEmployee = async function(employeeData) {
+window.addEmployee =
+async function(employeeData) {
 
   try {
 
@@ -1097,14 +1142,17 @@ window.addEmployee = async function(employeeData) {
         employeeData
       );
 
+
     console.log(
       "Employee added:",
       docRef.id
     );
 
+
     await loadEmployees();
 
     updateDashboard();
+
 
   } catch (error) {
 
@@ -1117,11 +1165,13 @@ window.addEmployee = async function(employeeData) {
 
 };
 
+
 // ==========================================
 // DELETE EMPLOYEE
 // ==========================================
 
-window.deleteEmployee = async function(employeeId) {
+window.deleteEmployee =
+async function(employeeId) {
 
   try {
 
@@ -1133,9 +1183,11 @@ window.deleteEmployee = async function(employeeId) {
       )
     );
 
+
     await loadEmployees();
 
     updateDashboard();
+
 
   } catch (error) {
 
@@ -1148,11 +1200,13 @@ window.deleteEmployee = async function(employeeId) {
 
 };
 
+
 // ==========================================
 // ADD ATTENDANCE
 // ==========================================
 
-window.addAttendance = async function(data) {
+window.addAttendance =
+async function(data) {
 
   try {
 
@@ -1164,9 +1218,11 @@ window.addAttendance = async function(data) {
       data
     );
 
+
     await loadAttendance();
 
     updateDashboard();
+
 
   } catch (error) {
 
@@ -1179,11 +1235,13 @@ window.addAttendance = async function(data) {
 
 };
 
+
 // ==========================================
 // ADD LEAVE
 // ==========================================
 
-window.addLeave = async function(data) {
+window.addLeave =
+async function(data) {
 
   try {
 
@@ -1195,9 +1253,11 @@ window.addLeave = async function(data) {
       data
     );
 
+
     await loadLeaves();
 
     updateDashboard();
+
 
   } catch (error) {
 
@@ -1210,8 +1270,23 @@ window.addLeave = async function(data) {
 
 };
 
+
 // ==========================================
-// FIREBASE SYSTEM READY
+// ADD EMPLOYEE BUTTON
+// ==========================================
+
+window.openAddEmployee =
+function() {
+
+  alert(
+    "Employee Add Form will be connected next."
+  );
+
+};
+
+
+// ==========================================
+// SYSTEM READY
 // ==========================================
 
 console.log(
