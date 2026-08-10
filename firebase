@@ -1,8 +1,4 @@
-const firebaseConfig = {
-  apiKey: ".....",
-  authDomain: "rafin-328ee.firebaseapp.com",
-  projectId: "rafin-328ee",
-  storageBucket: ".....",
-  messagingSenderId: ".....",
-  appId: "....."
-};
+apiKey: ".....",
+storageBucket: ".....",
+messagingSenderId: ".....",
+appId: "....."
