@@ -1,13 +1,13 @@
 const firebaseConfig = {
-  apiKey: "তোমার Firebase-এর আসল apiKey",
+  apiKey: "YOUR_REAL_API_KEY",
   authDomain: "rafin-328ee.firebaseapp.com",
   projectId: "rafin-328ee",
   storageBucket: "rafin-328ee.firebasestorage.app",
   messagingSenderId: "39395492330",
-  appId: "তোমার Firebase-এর আসল appId"
+  appId: "YOUR_REAL_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
 
-const db = firebase.firestore();
 const auth = firebase.auth();
+const db = firebase.firestore();
