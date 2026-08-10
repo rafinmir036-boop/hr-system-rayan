@@ -1,30 +1,75 @@
-// =====================================================
-// GLOBAL VARIABLES
-// =====================================================
+// ==========================================
+// HR SYSTEM - FIREBASE APPLICATION
+// ==========================================
+
+import { auth, db } from "../firebase/config.js";
+
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-auth.js";
+
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js";
+
+
+// ==========================================
+// GLOBAL DATA
+// ==========================================
+
+let employees = [];
+let attendance = [];
+let leaves = [];
 
 let currentUser = null;
-let currentEmployee = null;
 
 
-// =====================================================
-// AUTH STATE
-// =====================================================
+// ==========================================
+// PAGE INITIALIZATION
+// ==========================================
 
-auth.onAuthStateChanged(async (user) => {
+document.addEventListener("DOMContentLoaded", () => {
 
-  document.getElementById("loading-screen").style.display = "none";
+  console.log("HR System Started");
+
+  setupNavigation();
+  setupLogin();
+
+});
+
+
+// ==========================================
+// FIREBASE AUTH STATE
+// ==========================================
+
+onAuthStateChanged(auth, async (user) => {
 
   if (user) {
 
     currentUser = user;
 
-    await loadUserProfile(user);
+    console.log("Logged in:", user.email);
 
-    showApplication();
+    showDashboard();
 
-    await loadDashboard();
+    await loadEmployees();
+    await loadAttendance();
+    await loadLeaves();
+
+    updateDashboard();
 
   } else {
+
+    currentUser = null;
 
     showLogin();
 
@@ -33,261 +78,250 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 
-// =====================================================
-// SHOW LOGIN
-// =====================================================
-
-function showLogin() {
-
-  document.getElementById("login-page")
-    .classList.remove("hidden");
-
-  document.getElementById("app")
-    .classList.add("hidden");
-
-}
-
-
-// =====================================================
-// SHOW APPLICATION
-// =====================================================
-
-function showApplication() {
-
-  document.getElementById("login-page")
-    .classList.add("hidden");
-
-  document.getElementById("app")
-    .classList.remove("hidden");
-
-}
-
-
-// =====================================================
+// ==========================================
 // LOGIN
-// =====================================================
+// ==========================================
 
-async function loginUser() {
+function setupLogin() {
 
-  const email =
-    document.getElementById("login-email").value.trim();
+  const loginForm = document.getElementById("login-form");
 
-  const password =
-    document.getElementById("login-password").value;
+  if (!loginForm) return;
 
-  const errorBox =
-    document.getElementById("login-error");
+  loginForm.addEventListener("submit", async (e) => {
 
-  const button =
-    document.getElementById("login-button");
+    e.preventDefault();
 
+    const email =
+      document.getElementById("login-email").value.trim();
 
-  errorBox.classList.add("hidden");
+    const password =
+      document.getElementById("login-password").value;
 
+    const errorBox =
+      document.getElementById("login-error");
 
-  if (!email || !password) {
+    const button =
+      document.getElementById("login-button");
 
-    errorBox.textContent =
-      "Please enter email and password.";
+    try {
 
-    errorBox.classList.remove("hidden");
+      button.disabled = true;
 
-    return;
-  }
+      button.innerText = "Signing in...";
 
+      if (errorBox) {
+        errorBox.innerText = "";
+      }
 
-  button.disabled = true;
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
 
-  button.innerHTML =
-    '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Logging in...';
+    } catch (error) {
 
+      console.error(error);
 
-  try {
+      if (errorBox) {
 
-    await auth.signInWithEmailAndPassword(
-      email,
-      password
-    );
+        if (
+          error.code ===
+          "auth/invalid-credential"
+        ) {
 
-  } catch (error) {
+          errorBox.innerText =
+            "Invalid email or password.";
 
-    console.error(error);
+        } else {
 
-    errorBox.textContent =
-      getFirebaseError(error);
+          errorBox.innerText =
+            error.message;
 
-    errorBox.classList.remove("hidden");
+        }
 
-  }
+      }
 
+    } finally {
 
-  button.disabled = false;
+      button.disabled = false;
 
-  button.innerHTML =
-    '<i class="fa-solid fa-right-to-bracket mr-2"></i> Login';
-
-}
-
-
-// =====================================================
-// FIREBASE ERROR
-// =====================================================
-
-function getFirebaseError(error) {
-
-  switch (error.code) {
-
-    case "auth/invalid-email":
-      return "Invalid email address.";
-
-    case "auth/user-not-found":
-      return "User not found.";
-
-    case "auth/wrong-password":
-      return "Incorrect password.";
-
-    case "auth/invalid-credential":
-      return "Invalid email or password.";
-
-    case "auth/too-many-requests":
-      return "Too many login attempts. Try again later.";
-
-    default:
-      return error.message || "Login failed.";
-
-  }
-
-}
-
-
-// =====================================================
-// LOAD USER PROFILE
-// =====================================================
-
-async function loadUserProfile(user) {
-
-  try {
-
-    const snapshot =
-      await db
-        .collection("Employees")
-        .where("email", "==", user.email)
-        .limit(1)
-        .get();
-
-
-    if (!snapshot.empty) {
-
-      const doc =
-        snapshot.docs[0];
-
-      currentEmployee = {
-        id: doc.id,
-        ...doc.data()
-      };
-
-
-      document.getElementById(
-        "user-display-name"
-      ).textContent =
-        currentEmployee.name || "User";
-
-
-      document.getElementById(
-        "user-display-role"
-      ).textContent =
-        currentEmployee.designation ||
-        currentEmployee.role ||
-        "Employee";
-
-
-    } else {
-
-      document.getElementById(
-        "user-display-name"
-      ).textContent =
-        user.email;
-
-
-      document.getElementById(
-        "user-display-role"
-      ).textContent =
-        "User";
+      button.innerText = "Login";
 
     }
 
-  } catch (error) {
-
-    console.error(
-      "Profile loading error:",
-      error
-    );
-
-  }
+  });
 
 }
 
 
-// =====================================================
+// ==========================================
 // LOGOUT
-// =====================================================
+// ==========================================
 
-async function logout() {
+window.logout = async function () {
 
   try {
 
-    await auth.signOut();
+    await signOut(auth);
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Logout error:", error);
 
-    alert("Logout failed.");
+  }
+
+};
+
+
+// ==========================================
+// SHOW LOGIN
+// ==========================================
+
+function showLogin() {
+
+  const loginPage =
+    document.getElementById("login-page");
+
+  const appPage =
+    document.getElementById("app-page");
+
+  if (loginPage) {
+
+    loginPage.classList.remove("hidden");
+
+  }
+
+  if (appPage) {
+
+    appPage.classList.add("hidden");
 
   }
 
 }
 
 
-// =====================================================
-// TAB SWITCH
-// =====================================================
+// ==========================================
+// SHOW DASHBOARD
+// ==========================================
 
-function switchTab(tab) {
+function showDashboard() {
 
-  const contents =
-    document.querySelectorAll(".tab-content");
+  const loginPage =
+    document.getElementById("login-page");
 
-  contents.forEach((content) => {
+  const appPage =
+    document.getElementById("app-page");
 
-    content.classList.add("hidden");
+  if (loginPage) {
 
-  });
+    loginPage.classList.add("hidden");
+
+  }
+
+  if (appPage) {
+
+    appPage.classList.remove("hidden");
+
+  }
+
+  const userName =
+    document.getElementById("user-display-name");
+
+  const userRole =
+    document.getElementById("user-display-role");
+
+  if (userName) {
+
+    userName.innerText =
+      currentUser?.email || "User";
+
+  }
+
+  if (userRole) {
+
+    userRole.innerText =
+      "Administrator";
+
+  }
+
+}
 
 
-  const target =
+// ==========================================
+// NAVIGATION
+// ==========================================
+
+function setupNavigation() {
+
+  document.querySelectorAll(".nav-item")
+    .forEach(item => {
+
+      item.addEventListener("click", () => {
+
+        document.querySelectorAll(".nav-item")
+          .forEach(nav => {
+
+            nav.classList.remove("active");
+
+          });
+
+        item.classList.add("active");
+
+      });
+
+    });
+
+}
+
+
+// ==========================================
+// SWITCH TAB
+// ==========================================
+
+window.switchTab = function(tabName) {
+
+  document
+    .querySelectorAll(".tab-content")
+    .forEach(view => {
+
+      view.classList.add("hidden");
+
+    });
+
+
+  const selectedView =
     document.getElementById(
-      `view-${tab}`
+      `view-${tabName}`
     );
 
-  if (target) {
+  if (selectedView) {
 
-    target.classList.remove("hidden");
+    selectedView.classList.remove("hidden");
 
   }
 
 
-  const navItems =
-    document.querySelectorAll(".nav-item");
+  document
+    .querySelectorAll(".nav-item")
+    .forEach(item => {
 
-  navItems.forEach((item) => {
+      item.classList.remove("active");
 
-    item.classList.remove("active");
-
-  });
+    });
 
 
-  event?.currentTarget?.classList.add("active");
+  const clicked =
+    document.querySelector(
+      `[onclick="switchTab('${tabName}')"]`
+    );
+
+  if (clicked) {
+
+    clicked.classList.add("active");
+
+  }
 
 
   const titles = {
@@ -307,127 +341,85 @@ function switchTab(tab) {
   };
 
 
-  document.getElementById(
-    "page-title"
-  ).textContent =
-    titles[tab] || "HR System";
+  const title =
+    document.getElementById("page-title");
 
+  if (title) {
 
-  // Load data when opening tab
-
-  if (tab === "employees") {
-
-    loadEmployees();
+    title.innerText =
+      titles[tabName] || "HR System";
 
   }
 
-  if (tab === "attendance") {
 
-    loadAttendance();
+  if (tabName === "employees") {
 
-  }
-
-  if (tab === "leave") {
-
-    loadLeaves();
+    renderEmployees();
 
   }
 
-  if (tab === "payroll") {
 
-    loadPayroll();
+  if (tabName === "attendance") {
 
-  }
-
-  if (tab === "increments") {
-
-    loadIncrementDue();
+    renderAttendance();
 
   }
 
-}
+
+  if (tabName === "leave") {
+
+    renderLeaves();
+
+  }
 
 
-// =====================================================
-// DASHBOARD
-// =====================================================
+  if (tabName === "increments") {
 
-async function loadDashboard() {
+    renderIncrementDue();
+
+  }
+
+};
+
+
+// ==========================================
+// LOAD EMPLOYEES
+// ==========================================
+
+async function loadEmployees() {
 
   try {
 
-    const employeesSnapshot =
-      await db
-        .collection("Employees")
-        .get();
+    const snapshot =
+      await getDocs(
+        collection(db, "Employees")
+      );
 
+    employees = [];
 
-    document.getElementById(
-      "stat-total-emp"
-    ).textContent =
-      employeesSnapshot.size;
+    snapshot.forEach((document) => {
 
+      employees.push({
 
-    let incrementDue = 0;
+        id: document.id,
 
+        ...document.data()
 
-    const today =
-      new Date();
-
-
-    employeesSnapshot.forEach((doc) => {
-
-      const employee =
-        doc.data();
-
-
-      if (employee.lastIncrement) {
-
-        const lastIncrement =
-          new Date(
-            employee.lastIncrement
-          );
-
-
-        const diff =
-          today - lastIncrement;
-
-
-        const days =
-          diff / (
-            1000 *
-            60 *
-            60 *
-            24
-          );
-
-
-        if (days >= 365) {
-
-          incrementDue++;
-
-        }
-
-      }
+      });
 
     });
 
+    console.log(
+      "Employees loaded:",
+      employees
+    );
 
-    document.getElementById(
-      "stat-increment-due"
-    ).textContent =
-      incrementDue;
-
-
-    await loadTodayAttendance();
-
-    await loadTodayLeave();
-
+    renderEmployees();
 
   } catch (error) {
 
     console.error(
-      "Dashboard error:",
+      "Employee loading error:",
       error
     );
 
@@ -436,795 +428,665 @@ async function loadDashboard() {
 }
 
 
-// =====================================================
-// EMPLOYEES
-// =====================================================
+// ==========================================
+// LOAD ATTENDANCE
+// ==========================================
 
-async function loadEmployees() {
+async function loadAttendance() {
+
+  try {
+
+    const snapshot =
+      await getDocs(
+        collection(db, "Attendance")
+      );
+
+    attendance = [];
+
+    snapshot.forEach((document) => {
+
+      attendance.push({
+
+        id: document.id,
+
+        ...document.data()
+
+      });
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Attendance loading error:",
+      error
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// LOAD LEAVES
+// ==========================================
+
+async function loadLeaves() {
+
+  try {
+
+    const snapshot =
+      await getDocs(
+        collection(db, "Leaves")
+      );
+
+    leaves = [];
+
+    snapshot.forEach((document) => {
+
+      leaves.push({
+
+        id: document.id,
+
+        ...document.data()
+
+      });
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Leave loading error:",
+      error
+    );
+
+  }
+
+}
+
+
+// ==========================================
+// UPDATE DASHBOARD
+// ==========================================
+
+function updateDashboard() {
+
+  const total =
+    document.getElementById(
+      "stat-total-emp"
+    );
+
+  const present =
+    document.getElementById(
+      "stat-present"
+    );
+
+  const leave =
+    document.getElementById(
+      "stat-leave"
+    );
+
+  const increment =
+    document.getElementById(
+      "stat-increment-due"
+    );
+
+
+  if (total) {
+
+    total.innerText =
+      employees.length;
+
+  }
+
+
+  const today =
+    new Date()
+      .toISOString()
+      .split("T")[0];
+
+
+  const presentToday =
+    attendance.filter(item =>
+
+      item.date === today &&
+      (
+        item.status === "Present" ||
+        item.status === "present"
+      )
+
+    ).length;
+
+
+  if (present) {
+
+    present.innerText =
+      presentToday;
+
+  }
+
+
+  const leaveToday =
+    leaves.filter(item =>
+
+      item.date === today &&
+      (
+        item.status === "Approved" ||
+        item.status === "approved"
+      )
+
+    ).length;
+
+
+  if (leave) {
+
+    leave.innerText =
+      leaveToday;
+
+  }
+
+
+  const due =
+    employees.filter(employee => {
+
+      if (!employee.lastIncrement) {
+
+        return false;
+
+      }
+
+      const last =
+        new Date(
+          employee.lastIncrement
+        );
+
+      const now =
+        new Date();
+
+      const difference =
+        now.getTime() -
+        last.getTime();
+
+      const oneYear =
+        365 * 24 * 60 * 60 * 1000;
+
+      return difference >= oneYear;
+
+    }).length;
+
+
+  if (increment) {
+
+    increment.innerText =
+      due;
+
+  }
+
+}
+
+
+// ==========================================
+// RENDER EMPLOYEES
+// ==========================================
+
+function renderEmployees() {
 
   const tbody =
     document.getElementById(
       "employee-table-body"
     );
 
+  if (!tbody) return;
 
-  tbody.innerHTML = `
-
-    <tr>
-      <td colspan="6"
-          class="p-5 text-center text-gray-400">
-
-        <i class="fa-solid fa-spinner fa-spin mr-2"></i>
-
-        Loading employees...
-
-      </td>
-    </tr>
-
-  `;
+  tbody.innerHTML = "";
 
 
-  try {
-
-    const snapshot =
-      await db
-        .collection("Employees")
-        .orderBy("employeeId")
-        .get();
-
-
-    tbody.innerHTML = "";
-
-
-    if (snapshot.empty) {
-
-      tbody.innerHTML = `
-
-        <tr>
-          <td colspan="6"
-              class="p-5 text-center text-gray-400">
-
-            No employees found.
-
-          </td>
-        </tr>
-
-      `;
-
-      return;
-
-    }
-
-
-    snapshot.forEach((doc) => {
-
-      const employee =
-        doc.data();
-
-
-      const status =
-        employee.status || "active";
-
-
-      const statusClass =
-        status.toLowerCase() === "active"
-          ? "bg-emerald-100 text-emerald-700"
-          : "bg-red-100 text-red-700";
-
-
-      const row =
-        document.createElement("tr");
-
-
-      row.className =
-        "border-b hover:bg-gray-50";
-
-
-      row.innerHTML = `
-
-        <td class="p-3 font-medium">
-          ${escapeHtml(
-            employee.employeeId || doc.id
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            employee.name || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            employee.branch || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            employee.department || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            employee.designation || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-
-          <span
-            class="px-2 py-1 rounded-full
-                   text-xs font-semibold
-                   ${statusClass}"
-          >
-
-            ${escapeHtml(status)}
-
-          </span>
-
-        </td>
-
-      `;
-
-
-      tbody.appendChild(row);
-
-    });
-
-
-  } catch (error) {
-
-    console.error(error);
+  if (employees.length === 0) {
 
     tbody.innerHTML = `
 
       <tr>
-        <td colspan="6"
-            class="p-5 text-center text-red-500">
 
-          Error loading employees.
+        <td colspan="6"
+          class="p-6 text-center text-gray-400">
+
+          No employees found.
 
         </td>
+
       </tr>
 
     `;
 
+    return;
+
   }
+
+
+  employees.forEach(employee => {
+
+    const row =
+      document.createElement("tr");
+
+    row.className =
+      "border-b hover:bg-gray-50";
+
+
+    row.innerHTML = `
+
+      <td class="p-3 font-medium">
+        ${employee.employeeId || employee.id}
+      </td>
+
+      <td class="p-3">
+        ${employee.name || "-"}
+      </td>
+
+      <td class="p-3">
+        ${employee.branch || "-"}
+      </td>
+
+      <td class="p-3">
+        ${employee.department || "-"}
+      </td>
+
+      <td class="p-3">
+        ${employee.designation || "-"}
+      </td>
+
+      <td class="p-3">
+
+        <span class="
+          px-2 py-1
+          rounded-full
+          text-xs
+          bg-emerald-100
+          text-emerald-700
+        ">
+
+          ${employee.status || "Active"}
+
+        </span>
+
+      </td>
+
+    `;
+
+    tbody.appendChild(row);
+
+  });
 
 }
 
 
-// =====================================================
-// ATTENDANCE
-// =====================================================
+// ==========================================
+// RENDER ATTENDANCE
+// ==========================================
 
-async function loadAttendance() {
+function renderAttendance() {
 
   const tbody =
     document.getElementById(
       "attendance-table-body"
     );
 
+  if (!tbody) return;
 
-  tbody.innerHTML = `
+  tbody.innerHTML = "";
 
-    <tr>
-      <td colspan="4"
-          class="p-5 text-center text-gray-400">
 
-        Loading attendance...
+  attendance.forEach(item => {
 
+    const row =
+      document.createElement("tr");
+
+    row.className =
+      "border-b";
+
+
+    row.innerHTML = `
+
+      <td class="p-3">
+        ${item.employeeId || "-"}
       </td>
-    </tr>
 
-  `;
+      <td class="p-3">
+        ${item.name || "-"}
+      </td>
 
+      <td class="p-3">
+        ${item.date || "-"}
+      </td>
 
-  try {
+      <td class="p-3">
+        ${item.checkIn || "-"}
+      </td>
 
-    const snapshot =
-      await db
-        .collection("Attendance")
-        .orderBy("date", "desc")
-        .limit(100)
-        .get();
+      <td class="p-3">
+        ${item.checkOut || "-"}
+      </td>
 
+      <td class="p-3">
+        ${item.status || "-"}
+      </td>
 
-    tbody.innerHTML = "";
+    `;
 
+    tbody.appendChild(row);
 
-    snapshot.forEach((doc) => {
-
-      const data =
-        doc.data();
-
-
-      const row =
-        document.createElement("tr");
-
-
-      row.className =
-        "border-b";
-
-
-      row.innerHTML = `
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.employeeId || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.name || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.date || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.status || "-"
-          )}
-        </td>
-
-      `;
-
-
-      tbody.appendChild(row);
-
-    });
-
-
-    if (snapshot.empty) {
-
-      tbody.innerHTML = `
-
-        <tr>
-          <td colspan="4"
-              class="p-5 text-center text-gray-400">
-
-            No attendance records.
-
-          </td>
-        </tr>
-
-      `;
-
-    }
-
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
+  });
 
 }
 
 
-// =====================================================
-// TODAY ATTENDANCE
-// =====================================================
+// ==========================================
+// RENDER LEAVES
+// ==========================================
 
-async function loadTodayAttendance() {
-
-  const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
-
-
-  try {
-
-    const snapshot =
-      await db
-        .collection("Attendance")
-        .where("date", "==", today)
-        .where("status", "==", "Present")
-        .get();
-
-
-    document.getElementById(
-      "stat-present"
-    ).textContent =
-      snapshot.size;
-
-  } catch (error) {
-
-    console.error(error);
-
-    document.getElementById(
-      "stat-present"
-    ).textContent =
-      "0";
-
-  }
-
-}
-
-
-// =====================================================
-// LEAVE
-// =====================================================
-
-async function loadLeaves() {
+function renderLeaves() {
 
   const tbody =
     document.getElementById(
       "leave-table-body"
     );
 
+  if (!tbody) return;
 
-  try {
-
-    const snapshot =
-      await db
-        .collection("Leaves")
-        .orderBy("from", "desc")
-        .limit(100)
-        .get();
+  tbody.innerHTML = "";
 
 
-    tbody.innerHTML = "";
+  leaves.forEach(item => {
+
+    const row =
+      document.createElement("tr");
+
+    row.className =
+      "border-b";
 
 
-    snapshot.forEach((doc) => {
+    row.innerHTML = `
 
-      const data =
-        doc.data();
+      <td class="p-3">
+        ${item.employeeId || "-"}
+      </td>
 
+      <td class="p-3">
+        ${item.name || "-"}
+      </td>
 
-      const row =
-        document.createElement("tr");
+      <td class="p-3">
+        ${item.leaveType || "-"}
+      </td>
 
+      <td class="p-3">
+        ${item.date || "-"}
+      </td>
 
-      row.className =
-        "border-b";
+      <td class="p-3">
+        ${item.status || "Pending"}
+      </td>
 
+    `;
 
-      row.innerHTML = `
+    tbody.appendChild(row);
 
-        <td class="p-3">
-          ${escapeHtml(
-            data.name || data.employeeId || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.type || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.from || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.to || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.status || "Pending"
-          )}
-        </td>
-
-      `;
-
-
-      tbody.appendChild(row);
-
-    });
-
-
-    if (snapshot.empty) {
-
-      tbody.innerHTML = `
-
-        <tr>
-          <td colspan="5"
-              class="p-5 text-center text-gray-400">
-
-            No leave records.
-
-          </td>
-        </tr>
-
-      `;
-
-    }
-
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
+  });
 
 }
 
 
-// =====================================================
-// TODAY LEAVE
-// =====================================================
-
-async function loadTodayLeave() {
-
-  const today =
-    new Date()
-      .toISOString()
-      .split("T")[0];
-
-
-  try {
-
-    const snapshot =
-      await db
-        .collection("Leaves")
-        .where("from", "<=", today)
-        .where("to", ">=", today)
-        .where("status", "==", "Approved")
-        .get();
-
-
-    document.getElementById(
-      "stat-leave"
-    ).textContent =
-      snapshot.size;
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    document.getElementById(
-      "stat-leave"
-    ).textContent =
-      "0";
-
-  }
-
-}
-
-
-// =====================================================
-// PAYROLL
-// =====================================================
-
-async function loadPayroll() {
-
-  const tbody =
-    document.getElementById(
-      "payroll-table-body"
-    );
-
-
-  try {
-
-    const snapshot =
-      await db
-        .collection("Payroll")
-        .limit(100)
-        .get();
-
-
-    tbody.innerHTML = "";
-
-
-    snapshot.forEach((doc) => {
-
-      const data =
-        doc.data();
-
-
-      const basic =
-        Number(data.basicSalary || 0);
-
-
-      const allowance =
-        Number(data.allowance || 0);
-
-
-      const deduction =
-        Number(data.deduction || 0);
-
-
-      const net =
-        basic +
-        allowance -
-        deduction;
-
-
-      const row =
-        document.createElement("tr");
-
-
-      row.className =
-        "border-b";
-
-
-      row.innerHTML = `
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.employeeId || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ${escapeHtml(
-            data.name || "-"
-          )}
-        </td>
-
-        <td class="p-3">
-          ৳${basic.toLocaleString()}
-        </td>
-
-        <td class="p-3">
-          ৳${allowance.toLocaleString()}
-        </td>
-
-        <td class="p-3">
-          ৳${deduction.toLocaleString()}
-        </td>
-
-        <td class="p-3 font-bold text-indigo-600">
-          ৳${net.toLocaleString()}
-        </td>
-
-      `;
-
-
-      tbody.appendChild(row);
-
-    });
-
-
-    if (snapshot.empty) {
-
-      tbody.innerHTML = `
-
-        <tr>
-          <td colspan="6"
-              class="p-5 text-center text-gray-400">
-
-            No payroll records.
-
-          </td>
-        </tr>
-
-      `;
-
-    }
-
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-}
-
-
-// =====================================================
-// INCREMENT DUE
-// =====================================================
-
-async function loadIncrementDue() {
+// ==========================================
+// RENDER INCREMENT DUE
+// ==========================================
+
+function renderIncrementDue() {
 
   const tbody =
     document.getElementById(
       "increment-table-body"
     );
 
+  if (!tbody) return;
 
   tbody.innerHTML = "";
 
 
-  try {
-
-    const snapshot =
-      await db
-        .collection("Employees")
-        .get();
+  const now =
+    new Date();
 
 
-    let dueCount = 0;
-
-
-    snapshot.forEach((doc) => {
-
-      const employee =
-        doc.data();
-
+  const dueEmployees =
+    employees.filter(employee => {
 
       if (!employee.lastIncrement) {
-        return;
+
+        return false;
+
       }
 
-
-      const lastIncrement =
+      const last =
         new Date(
           employee.lastIncrement
         );
 
-
-      const today =
-        new Date();
-
-
       const difference =
-        today - lastIncrement;
+        now.getTime() -
+        last.getTime();
 
-
-      const days =
-        difference /
-        (
-          1000 *
-          60 *
-          60 *
-          24
-        );
-
-
-      if (days >= 365) {
-
-        dueCount++;
-
-
-        const row =
-          document.createElement("tr");
-
-
-        row.className =
-          "border-b";
-
-
-        row.innerHTML = `
-
-          <td class="p-3">
-            ${escapeHtml(
-              employee.employeeId || doc.id
-            )}
-          </td>
-
-          <td class="p-3">
-            ${escapeHtml(
-              employee.name || "-"
-            )}
-          </td>
-
-          <td class="p-3">
-            ${escapeHtml(
-              employee.branch || "-"
-            )}
-          </td>
-
-          <td class="p-3">
-            ${escapeHtml(
-              employee.lastIncrement
-            )}
-          </td>
-
-          <td class="p-3">
-
-            <span
-              class="px-2 py-1
-                     rounded-full
-                     bg-red-100
-                     text-red-700
-                     text-xs font-semibold"
-            >
-              Increment Due
-            </span>
-
-          </td>
-
-        `;
-
-
-        tbody.appendChild(row);
-
-      }
+      return (
+        difference >=
+        365 * 24 * 60 * 60 * 1000
+      );
 
     });
 
 
-    document.getElementById(
-      "stat-increment-due"
-    ).textContent =
-      dueCount;
+  if (dueEmployees.length === 0) {
+
+    tbody.innerHTML = `
+
+      <tr>
+
+        <td
+          colspan="5"
+          class="p-6 text-center text-gray-400">
+
+          No increment due.
+
+        </td>
+
+      </tr>
+
+    `;
+
+    return;
+
+  }
 
 
-    if (dueCount === 0) {
+  dueEmployees.forEach(employee => {
 
-      tbody.innerHTML = `
+    const row =
+      document.createElement("tr");
 
-        <tr>
-          <td colspan="5"
-              class="p-5 text-center text-gray-400">
+    row.className =
+      "border-b";
 
-            No increment due.
 
-          </td>
-        </tr>
+    row.innerHTML = `
 
-      `;
+      <td class="p-3">
+        ${employee.employeeId || employee.id}
+      </td>
 
-    }
+      <td class="p-3">
+        ${employee.name || "-"}
+      </td>
 
+      <td class="p-3">
+        ${employee.branch || "-"}
+      </td>
+
+      <td class="p-3">
+        ${employee.lastIncrement || "-"}
+      </td>
+
+      <td class="p-3">
+
+        <span class="
+          px-2 py-1
+          rounded-full
+          bg-red-100
+          text-red-700
+          text-xs
+          font-semibold
+        ">
+
+          Increment Due
+
+        </span>
+
+      </td>
+
+    `;
+
+    tbody.appendChild(row);
+
+  });
+
+}
+
+
+// ==========================================
+// ADD EMPLOYEE
+// ==========================================
+
+window.addEmployee = async function(employeeData) {
+
+  try {
+
+    const docRef =
+      await addDoc(
+        collection(db, "Employees"),
+        employeeData
+      );
+
+    console.log(
+      "Employee added:",
+      docRef.id
+    );
+
+    await loadEmployees();
+
+    updateDashboard();
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Add employee error:",
+      error
+    );
 
   }
 
-}
+};
 
 
-// =====================================================
-// ADD EMPLOYEE
-// =====================================================
+// ==========================================
+// DELETE EMPLOYEE
+// ==========================================
 
-function openAddEmployee() {
+window.deleteEmployee = async function(employeeId) {
 
-  alert(
-    "Employee form will be connected to Firestore in the next step."
-  );
+  try {
 
-}
+    await deleteDoc(
+      doc(
+        db,
+        "Employees",
+        employeeId
+      )
+    );
 
+    await loadEmployees();
 
-// =====================================================
-// LEAVE FORM
-// =====================================================
+    updateDashboard();
 
-function openLeaveForm() {
+  } catch (error) {
 
-  alert(
-    "Leave application form will be connected to Firestore in the next step."
-  );
+    console.error(
+      "Delete employee error:",
+      error
+    );
 
-}
-
-
-// =====================================================
-// HTML SECURITY
-// =====================================================
-
-function escapeHtml(value) {
-
-  if (value === null || value === undefined) {
-    return "";
   }
 
+};
 
-  return String(value)
 
-    .replaceAll("&", "&amp;")
+// ==========================================
+// ADD ATTENDANCE
+// ==========================================
 
-    .replaceAll("<", "&lt;")
+window.addAttendance = async function(data) {
 
-    .replaceAll(">", "&gt;")
+  try {
 
-    .replaceAll('"', "&quot;")
+    await addDoc(
+      collection(db, "Attendance"),
+      data
+    );
 
-    .replaceAll("'", "&#039;");
+    await loadAttendance();
 
-}
+    updateDashboard();
+
+  } catch (error) {
+
+    console.error(
+      "Attendance error:",
+      error
+    );
+
+  }
+
+};
+
+
+// ==========================================
+// ADD LEAVE
+// ==========================================
+
+window.addLeave = async function(data) {
+
+  try {
+
+    await addDoc(
+      collection(db, "Leaves"),
+      data
+    );
+
+    await loadLeaves();
+
+    updateDashboard();
+
+  } catch (error) {
+
+    console.error(
+      "Leave error:",
+      error
+    );
+
+  }
+
+};
+
+
+// ==========================================
+// CONSOLE MESSAGE
+// ==========================================
+
+console.log(
+  "Firebase HR System initialized successfully."
+);
