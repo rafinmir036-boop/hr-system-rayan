@@ -1,13 +1,65 @@
+// ==========================================
+// FIREBASE CONFIGURATION
+// ==========================================
+
+import { initializeApp } 
+from "https://www.gstatic.com/firebasejs/12.7.1/firebase-app.js";
+
+import { getAuth } 
+from "https://www.gstatic.com/firebasejs/12.7.1/firebase-auth.js";
+
+import { getFirestore } 
+from "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js";
+
+
+// ==========================================
+// YOUR FIREBASE PROJECT CONFIG
+// ==========================================
+
 const firebaseConfig = {
-  apiKey: "YOUR_REAL_API_KEY",
+
+  apiKey: "AIzaSyB8Z0nWckQPS t2aZxV0Ya3cz2FVX2MSC1u".replace(" ", ""),
+
   authDomain: "rafin-328ee.firebaseapp.com",
+
   projectId: "rafin-328ee",
+
   storageBucket: "rafin-328ee.firebasestorage.app",
-  messagingSenderId: "39395492330",
-  appId: "YOUR_REAL_APP_ID"
+
+  messagingSenderId: "393954293230",
+
+  appId: "1:393954293230:web:03b7b058a89c339410aff"
+
 };
 
-firebase.initializeApp(firebaseConfig);
 
-const auth = firebase.auth();
-const db = firebase.firestore();
+// ==========================================
+// INITIALIZE FIREBASE
+// ==========================================
+
+const app = initializeApp(firebaseConfig);
+
+
+// ==========================================
+// FIREBASE AUTHENTICATION
+// ==========================================
+
+const auth = getAuth(app);
+
+
+// ==========================================
+// FIRESTORE DATABASE
+// ==========================================
+
+const db = getFirestore(app);
+
+
+// ==========================================
+// EXPORT
+// ==========================================
+
+export {
+  app,
+  auth,
+  db
+};
