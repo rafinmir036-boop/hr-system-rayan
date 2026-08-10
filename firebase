@@ -1,34 +1,42 @@
-import { initializeApp } 
-from "https://www.gstatic.com/firebasejs/12.7.1/firebase-app.js";
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-app.js";
 
-import { getAuth } 
-from "https://www.gstatic.com/firebasejs/12.7.1/firebase-auth.js";
+import {
+  getAuth
+} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-auth.js";
 
-import { getFirestore } 
-from "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js";
+import {
+  getFirestore
+} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js";
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyB...তোমার_পুরো_API_KEY",
+
+  apiKey: "YOUR_API_KEY",
+
   authDomain: "rafin-328ee.firebaseapp.com",
+
   projectId: "rafin-328ee",
+
   storageBucket: "rafin-328ee.firebasestorage.app",
+
   messagingSenderId: "393954293230",
-  appId: "1:393954293230:web:তোমার_পুরো_APP_ID"
+
+  appId: "YOUR_APP_ID"
+
 };
 
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-
-// Firebase Authentication
 const auth = getAuth(app);
 
-
-// Firestore Database
 const db = getFirestore(app);
 
 
-// Export
-export { app, auth, db };
+export {
+  app,
+  auth,
+  db
+};
