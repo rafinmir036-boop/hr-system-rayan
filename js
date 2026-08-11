@@ -4,34 +4,45 @@ document.addEventListener("DOMContentLoaded", () => {
     const dashboard = document.getElementById("dashboard");
     const logoutBtn = document.getElementById("logout-btn");
 
-    // ১. লগইন ফর্ম সাবমিট ইভেন্ট
-    loginForm.addEventListener("submit", (e) => {
-        e.preventDefault(); // পেজ যেন রিফ্রেশ না হয়
+    // ১. লগইন ফর্ম সাবমিট ইভেন্ট হ্যান্ডলার
+    if (loginForm) {
+        loginForm.addEventListener("submit", (e) => {
+            e.preventDefault(); // ব্রাউজারের ডিফল্ট রিফ্রেশ বন্ধ করে
 
-        const email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
 
-        // Firebase Auth দিয়ে লগইন
-        auth.signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                alert("লগইন সফল হয়েছে!");
-                showDashboard();
-            })
-            .catch((error) => {
-                alert("লগইন ব্যর্থ হয়েছে: " + error.message);
-                console.error("Login Error:", error);
-            });
-    });
+            if (!email || !password) {
+                alert("দয়া করে ইমেইল এবং পাসওয়ার্ড প্রদান করুন।");
+                return;
+            }
 
-    // ২. লগআউট ইভেন্ট
-    logoutBtn.addEventListener("click", () => {
-        auth.signOut().then(() => {
-            alert("লগআউট করা হয়েছে।");
-            showLogin();
+            // Firebase Authentication দিয়ে সাইন ইন
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    console.log("Logged in successfully:", userCredential.user);
+                    showDashboard();
+                })
+                .catch((error) => {
+                    console.error("Login Error:", error.code, error.message);
+                    alert("লগইন ব্যর্থ হয়েছে: " + error.message);
+                });
         });
-    });
+    }
 
-    // ৩. লগইন স্টেট পর্যবেক্ষণ (User logged in আছে কি না চেক করা)
+    // ২. লগআউট ইভেন্ট হ্যান্ডলার
+    if (logoutBtn) {
+        logoutBtn.addEventListener("click", () => {
+            auth.signOut().then(() => {
+                alert("লগআউট সফল হয়েছে।");
+                showLogin();
+            }).catch((error) => {
+                console.error("Logout Error:", error);
+            });
+        });
+    }
+
+    // ৩. ইউজারের লগইন অবস্থা চেক করা (Auth State Listener)
     auth.onAuthStateChanged((user) => {
         if (user) {
             showDashboard();
@@ -40,14 +51,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // UI টগল ফাংশন
+    // UI টগল ফাংশনসমূহ
     function showDashboard() {
-        loginCard.style.display = "none";
-        dashboard.style.display = "block";
+        if (loginCard) loginCard.style.display = "none";
+        if (dashboard) dashboard.style.display = "block";
     }
 
     function showLogin() {
-        loginCard.style.display = "block";
-        dashboard.style.display = "none";
+        if (loginCard) loginCard.style.display = "block";
+        if (dashboard) dashboard.style.display = "none";
     }
 });
