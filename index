@@ -5,38 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR & Payroll Management</title>
     
-    <!-- CSS File Link (সঠিক পাথ) -->
-    <link rel="stylesheet" href="./css/style.css">
-    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        /* Card Style */
         .card { background: #ffffff; color: #1e293b; padding: 32px; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
         .card h2 { margin-bottom: 8px; color: #0f172a; font-size: 24px; }
         .card p { font-size: 14px; color: #64748b; margin-bottom: 24px; }
+        
+        /* Form Inputs */
         .input-group { margin-bottom: 16px; text-align: left; }
         .input-group label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: #334155; }
         .input-group input { width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
         .input-group input:focus { border-color: #4f46e5; }
+        
+        /* Buttons */
         .btn { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; transition: background 0.2s; }
         .btn:hover { background: #4338ca; }
+        .btn-danger { background: #ef4444; width: auto; padding: 10px 24px; }
+        .btn-danger:hover { background: #dc2626; }
+        
+        /* Dashboard Container */
         #dashboard { display: none; text-align: center; background: #1e293b; padding: 40px; border-radius: 12px; width: 90%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         #dashboard h1 { font-size: 28px; color: #38bdf8; margin-bottom: 12px; }
         #dashboard p { font-size: 16px; color: #94a3b8; margin-bottom: 24px; }
-        .btn-danger { background: #ef4444; width: auto; padding: 10px 24px; }
-        .btn-danger:hover { background: #dc2626; }
     </style>
 </head>
 <body>
 
-    <!-- Login Form Card -->
+    <!-- 1. Login Card -->
     <div class="card" id="login-card">
         <h2>HR Portal Login</h2>
         <p>আপনার ইউজারনেম এবং পাসওয়ার্ড দিন</p>
         
         <form id="login-form">
             <div class="input-group">
-                <label for="email">Username / Employee ID</label>
+                <label for="email">Username / Email</label>
                 <input type="email" id="email" placeholder="admin@test.com" required>
             </div>
             <div class="input-group">
@@ -47,20 +52,91 @@
         </form>
     </div>
 
-    <!-- Dashboard Section -->
+    <!-- 2. Dashboard View -->
     <div id="dashboard">
         <h1>HR & Payroll Dashboard</h1>
         <p>আপনি সফলভাবে লগইন করেছেন।</p>
         <button class="btn btn-danger" id="logout-btn">লগআউট</button>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase CDN SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- Custom Scripts (সঠিক ফোল্ডার পাথ অনুযায়ী) -->
-    <script src="./firebase/config.js"></script>
-    <script src="./js/app.js"></script>
+    <!-- App Scripts -->
+    <script>
+        // ১. Firebase Configuration Object
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", // Firebase Console থেকে পাওয়া আপনার আসল API Key এখানে বসান
+            authDomain: "rafin-328ee.firebaseapp.com",
+            projectId: "rafin-328ee",
+            storageBucket: "rafin-328ee.appspot.com",
+            messagingSenderId: "393954293230",
+            appId: "1:393954293230:web:03bb7b058a89c339410aff"
+        };
+
+        // Firebase ইনিশিয়ালাইজেশন
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // DOM elements
+        const loginForm = document.getElementById("login-form");
+        const loginCard = document.getElementById("login-card");
+        const dashboard = document.getElementById("dashboard");
+        const logoutBtn = document.getElementById("logout-btn");
+
+        // ২. Form Submit Handling (Page Refresh Prevent)
+        if (loginForm) {
+            loginForm.addEventListener("submit", (e) => {
+                e.preventDefault(); // ব্রাউজার রিফ্রেশ হওয়া আটকায়
+
+                const email = document.getElementById("email").value.trim();
+                const password = document.getElementById("password").value.trim();
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        console.log("Login Success:", userCredential.user);
+                        showDashboard();
+                    })
+                    .catch((error) => {
+                        console.error("Login Error:", error);
+                        alert("লগইন ব্যর্থ হয়েছে: " + error.message);
+                    });
+            });
+        }
+
+        // ৩. Logout Handling
+        if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+                auth.signOut().then(() => {
+                    showLogin();
+                });
+            });
+        }
+
+        // ৪. Auto Check Login Status
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        });
+
+        function showDashboard() {
+            if (loginCard) loginCard.style.display = "none";
+            if (dashboard) dashboard.style.display = "block";
+        }
+
+        function showLogin() {
+            if (loginCard) loginCard.style.display = "block";
+            if (dashboard) dashboard.style.display = "none";
+        }
+    </script>
 </body>
 </html>
