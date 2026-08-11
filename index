@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Portal Login</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 font-sans antialiased">
 
-    <!-- LOGIN SECTION -->
+    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="min-h-screen flex items-center justify-center bg-slate-900 px-4">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
             <h2 class="text-2xl font-bold text-slate-800 mb-2">HR Portal Login</h2>
@@ -28,7 +29,7 @@
         </div>
     </div>
 
-    <!-- MAIN APP LAYOUT (Hidden by default) -->
+    <!-- APP SCREEN (Hidden by default) -->
     <div id="app-screen" class="min-h-screen flex items-center justify-center bg-slate-900 text-white hidden">
         <div class="text-center p-8 bg-slate-800 rounded-xl max-w-md w-full shadow-2xl">
             <h1 class="text-3xl font-bold text-sky-400 mb-4">HR & Payroll Dashboard</h1>
@@ -42,10 +43,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- Embedded Scripts (সরাসরি সোর্স ফাইল কানেকশন) -->
+    <!-- Embedded Application Logic -->
     <script>
+        // Firebase Configuration Object
         const firebaseConfig = {
-            apiKey: "AIzaSy...", // আপনার আসল API Key এখানে বসিয়ে দিন
+            apiKey: "YOUR_API_KEY_HERE", // এখানে আপনার আসল API Key বসাবেন
             authDomain: "rafin-328ee.firebaseapp.com",
             projectId: "rafin-328ee",
             storageBucket: "rafin-328ee.appspot.com",
@@ -65,7 +67,7 @@
         const logoutBtn = document.getElementById("logout-btn");
 
         loginForm.addEventListener("submit", (e) => {
-            e.preventDefault();
+            e.preventDefault(); // ব্রাউজারের ডিফল্ট রিফ্রেশ বন্ধ রাখা
 
             const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value.trim();
