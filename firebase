@@ -1,42 +1,16 @@
-import {
-  initializeApp
-} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-app.js";
-
-import {
-  getAuth
-} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-auth.js";
-
-import {
-  getFirestore
-} from "https://www.gstatic.com/firebasejs/12.7.1/firebase-firestore.js";
-
-
+// Firebase কনফিগারেশন অবজেক্ট
 const firebaseConfig = {
-
-  apiKey: "YOUR_API_KEY",
-
-  authDomain: "rafin-328ee.firebaseapp.com",
-
-  projectId: "rafin-328ee",
-
-  storageBucket: "rafin-328ee.firebasestorage.app",
-
-  messagingSenderId: "393954293230",
-
-  appId: "YOUR_APP_ID"
-
+    apiKey: "YOUR_API_KEY_HERE",
+    authDomain: "rafin-328ee.firebaseapp.com",
+    projectId: "rafin-328ee",
+    storageBucket: "rafin-328ee.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
+// Firebase ইনিশিয়ালাইজ করুন
+firebase.initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-
-const auth = getAuth(app);
-
-const db = getFirestore(app);
-
-
-export {
-  app,
-  auth,
-  db
-};
+// Auth এবং Firestore রেফারেন্স
+const auth = firebase.auth();
+const db = firebase.firestore();
