@@ -45,14 +45,15 @@
 
     <!-- Embedded Application Logic -->
     <script>
-        // Firebase Configuration Object
+        // Firebase Config (Your Exact API Keys Attached)
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY_HERE", // এখানে আপনার আসল API Key বসাবেন
+            apiKey: "AIzaSyB20hWCqKPSt2aZxVOYa3cz2FVX2MSCs1U",
             authDomain: "rafin-328ee.firebaseapp.com",
             projectId: "rafin-328ee",
-            storageBucket: "rafin-328ee.appspot.com",
+            storageBucket: "rafin-328ee.firebasestorage.app",
             messagingSenderId: "393954293230",
-            appId: "1:393954293230:web:03bb7b058a89c339410aff"
+            appId: "1:393954293230:web:03bb7b058a89c339410aff",
+            measurementId: "G-0HN3Z0SJ3W"
         };
 
         if (!firebase.apps.length) {
@@ -67,7 +68,7 @@
         const logoutBtn = document.getElementById("logout-btn");
 
         loginForm.addEventListener("submit", (e) => {
-            e.preventDefault(); // ব্রাউজারের ডিফল্ট রিফ্রেশ বন্ধ রাখা
+            e.preventDefault(); // ব্রাউজার রিফ্রেশ হওয়া আটকানো
 
             const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value.trim();
